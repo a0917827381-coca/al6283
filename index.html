@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注音盲打修煉場 | Bopomofo Touch Typing Master</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans TC & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            darkBg: '#0b0f19',
+            cardBg: '#131b2e',
+            subtleBorder: '#1e293b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Glow & Animations */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 10px rgba(56, 189, 248, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.8), inset 0 0 16px rgba(56, 189, 248, 0.4); }
+    }
+    .key-active-glow {
+      animation: pulseGlow 1.4s infinite ease-in-out;
+      border-color: #38bdf8 !important;
+      transform: translateY(-2px);
+    }
+    .key-pressed {
+      transform: translateY(2px) scale(0.96) !important;
+      filter: brightness(1.3);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .shake-anim {
+      animation: shake 0.35s ease-in-out;
+    }
+    /* Confetti Canvas */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="bg-darkBg text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- Confetti Canvas for 7-streak complete -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Top Navigation & Global Controls -->
+  <header class="border-b border-subtleBorder/80 bg-cardBg/70 backdrop-blur-md sticky top-0 z-40 px-4 py-3 sm:px-8">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Branding -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white font-bold text-xl border border-white/20">
+          ㄅ
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-cyan-400 bg-clip-text text-transparent">
+              注音盲打修煉場
+            </h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono">
+              7字×7遍極限盲打
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">
+            攻克注音盲打十大難關・建立手指反射神經
+          </p>
+        </div>
+      </div>
+
+      <!-- Mode & Sound & Level Pickers -->
+      <div class="flex items-center flex-wrap gap-2">
+        <!-- Practice Mode Switch -->
+        <div class="bg-slate-900/90 p-1 rounded-xl border border-slate-700/60 flex items-center text-xs">
+          <button id="modeDirectBtn" class="px-3 py-1.5 rounded-lg font-medium transition-all duration-200 bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20">
+            注音直打 (純鍵位肌肉記憶)
+          </button>
+          <button id="modeImeBtn" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all duration-200">
+            中文實戰 (IME輸入法)
+          </button>
+        </div>
+
+        <!-- Sound Selector -->
+        <div class="relative">
+          <select id="soundSelect" class="bg-slate-900/90 text-slate-300 text-xs rounded-xl px-3 py-2 border border-slate-700/60 focus:outline-none focus:border-cyan-400 cursor-pointer">
+            <option value="mechanical">🔊 機械青軸音</option>
+            <option value="typewriter">⌨️ 復古打字機</option>
+            <option value="wood">🪵 清脆木質聲</option>
+            <option value="mute">🔇 靜音模式</option>
+          </select>
+        </div>
+
+        <!-- Level Menu Drawer Toggle -->
+        <button id="openLevelsBtn" class="bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 text-xs px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+          <span>切換關卡</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Training Container -->
+  <main class="max-w-6xl w-full mx-auto px-4 py-4 sm:py-6 flex-1 flex flex-col justify-start gap-4 sm:gap-6">
+
+    <!-- Level Info & 7-Streak Indicator Bar -->
+    <div id="levelInfoBar" class="bg-cardBg/90 border border-subtleBorder rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden backdrop-blur-sm transition-all duration-300">
+      <!-- Ambient Background Glow -->
+      <div class="absolute -right-20 -top-20 w-60 h-60 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <!-- Level Details -->
+        <div class="space-y-1.5 max-w-2xl">
+          <div class="flex items-center gap-2">
+            <span id="levelBadge" class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              關卡 1 / 7
+            </span>
+            <span id="targetFocusTag" class="text-xs px-2.5 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">
+              🎯 二聲專項攻克 (上方數字鍵 6 / ˊ)
+            </span>
+          </div>
+          <h2 id="levelTitle" class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            二聲專項強化：七字全二聲極限盲打
+          </h2>
+          <p id="levelDesc" class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            全句7個字皆為「二聲（ˊ）」，專門訓練右手食指向上伸展至數字排最容易失誤的「6」號鍵。
+          </p>
+        </div>
+
+        <!-- 7 Repetition Streak Counter & Dots -->
+        <div class="flex flex-col sm:items-end justify-center bg-slate-900/60 border border-slate-800 rounded-xl p-3 sm:px-5">
+          <div class="flex items-center justify-between sm:justify-end gap-3 mb-2 w-full">
+            <span class="text-xs text-slate-400 font-medium">7遍連擊解鎖下一關</span>
+            <span class="text-sm font-mono font-bold text-cyan-400">
+              <span id="currentRepText" class="text-lg text-white">0</span> / 7
+            </span>
+          </div>
+          <!-- 7 Glowing Orbs -->
+          <div id="repetitionDots" class="flex items-center gap-2">
+            <!-- 7 dots dynamically injected -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drill Mode Banner (Visible only in Error Elimination Drill Mode) -->
+    <div id="drillBanner" class="hidden bg-gradient-to-r from-rose-950/80 via-slate-900/90 to-amber-950/80 border-2 border-rose-500/50 rounded-2xl p-4 shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3 animate-pulse">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 text-xl font-bold shadow-lg shadow-rose-500/20">
+          🔥
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">
+              錯字消滅特訓進行中
+            </h3>
+            <span id="drillRemainingBadge" class="bg-rose-500/30 text-rose-300 border border-rose-500/50 text-xs px-2.5 py-0.5 rounded-full font-mono font-bold">
+              剩餘 0 字
+            </span>
+          </div>
+          <p class="text-xs text-rose-200/80 mt-0.5">
+            消滅規則：每個字必須「零失誤一次打對」才能自紀錄中永久刪除！若按錯將重新排至隊列末端。
+          </p>
+        </div>
+      </div>
+      <button id="exitDrillBtn" class="bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-rose-500/50 text-slate-300 hover:text-white text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+        <span>✕ 退出特訓返回原關卡</span>
+      </button>
+    </div>
+
+    <!-- Sentence Typing Arena -->
+    <div id="typingArena" class="relative bg-gradient-to-b from-cardBg to-slate-900 border border-subtleBorder rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center justify-center min-h-[220px]">
+
+      <!-- Mode 1 Helper Notice -->
+      <div id="mode1HintNotice" class="text-xs text-slate-400 mb-4 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>當前為【注音直打模式】：實體鍵盤直接按對應英數鍵（如 <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-mono">1</kbd> 出 ㄅ、<kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-mono">6</kbd> 出 ˊ、<kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-mono">Space</kbd> 出 一聲）。不需開啟中文輸入法！</span>
+      </div>
+
+      <!-- Mode 2 Real IME Input Field (Hidden in Mode 1) -->
+      <div id="imeInputWrapper" class="hidden w-full max-w-md mb-6">
+        <div class="text-xs text-amber-300/90 mb-2 text-center">
+          請切換至系統內建注音輸入法，在此輸入完整 7 個字後按下 Enter：
+        </div>
+        <div class="relative">
+          <input type="text" id="imeInputField" placeholder="在此輸入中文句子..." autocomplete="off" spellcheck="false" class="w-full bg-slate-900 text-center text-2xl font-bold tracking-widest text-cyan-300 border-2 border-indigo-500/50 rounded-2xl py-3 px-4 focus:outline-none focus:border-cyan-400 shadow-inner">
+        </div>
+      </div>
+
+      <!-- The 7 Characters Showcase -->
+      <div id="sentenceDisplay" class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 select-none my-2">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Active Key & Finger Prompt Box -->
+      <div id="fingerPromptBox" class="mt-6 flex flex-wrap items-center justify-center gap-3 bg-slate-900/80 border border-slate-800 px-5 py-2.5 rounded-full text-xs sm:text-sm">
+        <span class="text-slate-400">當前目標按鍵：</span>
+        <span id="promptTargetKey" class="font-mono font-bold text-white bg-cyan-600/30 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg text-sm text-cyan-300">
+          -
+        </span>
+        <span class="text-slate-500">|</span>
+        <span class="text-slate-400">標準指法推薦：</span>
+        <span id="promptTargetFinger" class="px-3 py-0.5 rounded-full font-bold text-xs">
+          -
+        </span>
+      </div>
+
+      <!-- Accuracy / Mistake flash message -->
+      <div id="feedbackToast" class="h-5 mt-2 text-xs font-medium text-rose-400 transition-opacity opacity-0">
+        鍵位按錯，請依循鍵盤高亮指示再次嘗試！
+      </div>
+    </div>
+
+    <!-- Interactive Taiwan DaQian Virtual Keyboard -->
+    <div class="bg-cardBg/90 border border-subtleBorder rounded-3xl p-3 sm:p-5 shadow-xl backdrop-blur-sm">
+      <div class="flex items-center justify-between mb-3 px-1 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-slate-300">標準大千式注音鍵盤佈局 (DaQian Layout)</span>
+          <span class="text-slate-500 hidden sm:inline">• 手指分區色彩指引</span>
+        </div>
+        <!-- Finger Legend Bar -->
+        <div class="hidden lg:flex items-center gap-2 text-[11px]">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>小指</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>無名指</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>中指</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>左食指</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>右食指</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>右中指</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span>右無名</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>拇指(一聲)</span>
+        </div>
+      </div>
+
+      <!-- Keyboard Container -->
+      <div id="keyboard" class="flex flex-col gap-1.5 select-none font-mono text-xs max-w-4xl mx-auto w-full">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Live Performance Stats Panel -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <!-- Accuracy -->
+      <div class="bg-cardBg/80 border border-subtleBorder p-3.5 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-[11px] text-slate-400 font-medium">準確率 Accuracy</div>
+          <div id="statAccuracy" class="text-xl sm:text-2xl font-bold font-mono text-emerald-400">100%</div>
+        </div>
+        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">
+          🎯
+        </div>
+      </div>
+
+      <!-- WPM -->
+      <div class="bg-cardBg/80 border border-subtleBorder p-3.5 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-[11px] text-slate-400 font-medium">中文語速 WPM</div>
+          <div id="statWpm" class="text-xl sm:text-2xl font-bold font-mono text-cyan-400">0</div>
+        </div>
+        <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">
+          ⚡
+        </div>
+      </div>
+
+      <!-- CPM -->
+      <div class="bg-cardBg/80 border border-subtleBorder p-3.5 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-[11px] text-slate-400 font-medium">擊鍵速 CPM</div>
+          <div id="statCpm" class="text-xl sm:text-2xl font-bold font-mono text-indigo-400">0</div>
+        </div>
+        <div class="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
+          ⌨️
+        </div>
+      </div>
+
+      <!-- Errors & Mistake Drill Card -->
+      <div class="bg-cardBg/80 border border-subtleBorder p-3 sm:p-3.5 rounded-2xl flex flex-col justify-between gap-2.5 relative group overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-slate-400 font-medium">按錯次數 Mistake</div>
+            <div id="statErrors" class="text-xl sm:text-2xl font-bold font-mono text-rose-400">0</div>
+          </div>
+          <div class="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 font-bold">
+            ⚠️
+          </div>
+        </div>
+
+        <!-- Mistake Review & Drill Trigger Button -->
+        <button id="openMistakeModalBtn" disabled class="w-full py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 bg-slate-800/70 text-slate-500 border border-slate-700/60 cursor-not-allowed">
+          <span id="mistakeBtnLabel">錯字特訓</span>
+          <span id="mistakeBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-700 text-slate-400">暫無錯字</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center text-xs text-slate-500 py-4 border-t border-subtleBorder/60 mt-4">
+    <p>專為台灣注音盲打打造 • 大千式鍵盤標準鍵位 • 依據神經反射人體工學設計</p>
+  </footer>
+
+  <!-- Mistake List Modal -->
+  <div id="mistakeListModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-cardBg border border-slate-700/80 rounded-3xl max-w-2xl w-full p-6 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-lg font-bold text-white">錯字庫清單 (Mistake Review)</h3>
+            <span id="modalMistakeTotalBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold">
+              0 字待消滅
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">點擊下方按鈕進入特訓模式，每個字必須「零失誤一次打對」才能永久消滅！</p>
+        </div>
+        <button id="closeMistakeModalBtn" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Mistake items list -->
+      <div id="mistakeItemsList" class="py-4 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 pr-1">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="pt-4 border-t border-slate-800 flex items-center gap-3">
+        <button id="closeMistakeModalBtn2" class="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">
+          關閉
+        </button>
+        <button id="startDrillFromModalBtn" disabled class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+          <span>🔥 開始消滅錯字特訓</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drill Complete Celebration Modal -->
+  <div id="drillVictoryModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gradient-to-b from-cardBg to-slate-900 border-2 border-rose-500/60 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+      <div class="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-400/50 text-3xl flex items-center justify-center mx-auto mb-4 text-rose-400 shadow-lg shadow-rose-500/20 animate-bounce">
+        ⚔️
+      </div>
+      <h3 class="text-2xl font-bold text-white mb-1">頑固錯字已全數消滅！</h3>
+      <p class="text-xs text-rose-300 font-medium mb-4">
+        太神了！所有曾按錯的字皆已完成零失誤特訓，肌肉記憶已重塑。
+      </p>
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-6 text-center space-y-1">
+        <div class="text-sm text-emerald-400 font-bold">✓ 錯字庫已全數清空 (0 待消滅)</div>
+        <div class="text-xs text-slate-400">大千式鍵位盲打反射神經大幅提升</div>
+      </div>
+      <button id="drillVictoryReturnBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition">
+        🚀 返回原關卡繼續挑戰
+      </button>
+    </div>
+  </div>
+
+  <!-- Level Selection Drawer / Modal -->
+  <div id="levelModal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-cardBg border border-slate-700/80 rounded-3xl max-w-2xl w-full p-6 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div>
+          <h3 class="text-lg font-bold text-white">注音盲打專項修煉題庫 (7 字專題)</h3>
+          <p class="text-xs text-slate-400">點選即可切換不同肌肉記憶攻克關卡</p>
+        </div>
+        <button id="closeLevelModalBtn" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Level List -->
+      <div id="levelsListContainer" class="py-4 overflow-y-auto space-y-2.5 flex-1 pr-1">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 Reps Complete Celebration Modal -->
+  <div id="congratsModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gradient-to-b from-cardBg to-slate-900 border-2 border-emerald-500/60 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+      <!-- Glow element -->
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl"></div>
+
+      <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 text-3xl flex items-center justify-center mx-auto mb-4 text-emerald-400 shadow-lg shadow-emerald-500/20">
+        🏆
+      </div>
+
+      <h3 class="text-2xl font-bold text-white mb-1">恭喜完成 7 次肌肉記憶強化！</h3>
+      <p id="congratsLevelTitle" class="text-xs text-cyan-300 font-medium mb-4">
+        已成功解鎖：二聲專項強化
+      </p>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-6 grid grid-cols-3 gap-2 text-center">
+        <div>
+          <div class="text-[10px] text-slate-400">平均準確率</div>
+          <div id="modalAccuracy" class="text-lg font-bold font-mono text-emerald-400">98%</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400">平均速度</div>
+          <div id="modalWpm" class="text-lg font-bold font-mono text-cyan-400">42 WPM</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400">7遍總耗時</div>
+          <div id="modalTime" class="text-lg font-bold font-mono text-indigo-300">58s</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="repeatLevelBtn" class="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+          🔄 再練 7 遍
+        </button>
+        <button id="nextLevelBtn" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition">
+          🚀 進入下一關卡
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    /* ==========================================================================
+       1. Curated 7-Character Focus Lessons (注音難點盲打專題)
+       ========================================================================== */
+    const LESSONS = [
+      {
+        id: 1,
+        tag: "🎯 二聲專項攻克 (數字鍵 6 / ˊ)",
+        title: "二聲專項強化：七字全二聲極限盲打",
+        desc: "全句7字皆為「二聲（ˊ）」，專門攻克最容易按錯的上方數字鍵「6」（ˊ）。",
+        sentence: "明湖晴陽白雲遊",
+        // Character breakdown for Mode 1:
+        // char, pinyin, array of strokes: { bopomofo, key, finger }
+        data: [
+          {
+            char: "明",
+            bopomofo: "ㄇㄧㄥˊ",
+            strokes: [
+              { b: "ㄇ", k: "a", f: "left-pinky", name: "左手小指 (a)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄥ", k: "/", f: "right-pinky", name: "右手小指 (/)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          },
+          {
+            char: "湖",
+            bopomofo: "ㄏㄨˊ",
+            strokes: [
+              { b: "ㄏ", k: "c", f: "left-middle", name: "左手中指 (c)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          },
+          {
+            char: "晴",
+            bopomofo: "ㄑㄧㄥˊ",
+            strokes: [
+              { b: "ㄑ", k: "f", f: "left-index", name: "左手食指 (f)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄥ", k: "/", f: "right-pinky", name: "右手小指 (/)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          },
+          {
+            char: "陽",
+            bopomofo: "ㄧㄤˊ",
+            strokes: [
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄤ", k: ";", f: "right-pinky", name: "右手小指 (;)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          },
+          {
+            char: "白",
+            bopomofo: "ㄅㄞˊ",
+            strokes: [
+              { b: "ㄅ", k: "1", f: "left-pinky", name: "左手小指伸至數字排 (1)" },
+              { b: "ㄞ", k: "9", f: "right-ring", name: "右手無名指至數字排 (9)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          },
+          {
+            char: "雲",
+            bopomofo: "ㄩㄣˊ",
+            strokes: [
+              { b: "ㄩ", k: "m", f: "right-index", name: "右手食指下收 (m)" },
+              { b: "ㄣ", k: "p", f: "right-pinky", name: "右手小指右上邊緣 (p)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          },
+          {
+            char: "遊",
+            bopomofo: "ㄧㄡˊ",
+            strokes: [
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄡ", k: ".", f: "right-ring", name: "右手無名指下收 (.)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指伸往最上排 (6)" }
+            ]
+          }
+        ]
+      },
+      {
+        id: 2,
+        tag: "🎯 數字列盲打伸展 (1 2 5 9 0 -)",
+        title: "最上排數字列：盲打指距大伸展",
+        desc: "針對上方數字排盲打最難的鍵位（ㄅ 1、ㄉ 2、ㄓ 5、ㄞ 9、ㄢ 0、ㄦ -），強化手掌不離定位鍵的遠距離延伸。",
+        sentence: "真愛安然兒時光",
+        data: [
+          {
+            char: "真",
+            bopomofo: "ㄓㄣ",
+            strokes: [
+              { b: "ㄓ", k: "5", f: "left-index", name: "左手食指伸展 (5)" },
+              { b: "ㄣ", k: "p", f: "right-pinky", name: "右手小指 (p)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指輕敲空白鍵 (一聲)" }
+            ]
+          },
+          {
+            char: "愛",
+            bopomofo: "ㄞˋ",
+            strokes: [
+              { b: "ㄞ", k: "9", f: "right-ring", name: "右手無名指伸展 (9)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指按四聲 (4)" }
+            ]
+          },
+          {
+            char: "安",
+            bopomofo: "ㄢ",
+            strokes: [
+              { b: "ㄢ", k: "0", f: "right-pinky", name: "右手小指右上伸展 (0)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指輕敲空白鍵 (一聲)" }
+            ]
+          },
+          {
+            char: "然",
+            bopomofo: "ㄖㄢˊ",
+            strokes: [
+              { b: "ㄖ", k: "b", f: "left-index", name: "左手食指底排伸展 (b)" },
+              { b: "ㄢ", k: "0", f: "right-pinky", name: "右手小指數字排 (0)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指按二聲 (6)" }
+            ]
+          },
+          {
+            char: "兒",
+            bopomofo: "ㄦˊ",
+            strokes: [
+              { b: "ㄦ", k: "-", f: "right-pinky", name: "右手小指右上極限鍵 (-)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指按二聲 (6)" }
+            ]
+          },
+          {
+            char: "時",
+            bopomofo: "ㄕˊ",
+            strokes: [
+              { b: "ㄕ", k: "g", f: "left-index", name: "左手食指 (g)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指按二聲 (6)" }
+            ]
+          },
+          {
+            char: "光",
+            bopomofo: "ㄍㄨㄤ",
+            strokes: [
+              { b: "ㄍ", k: "e", f: "left-middle", name: "左手中指 (e)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ㄤ", k: ";", f: "right-pinky", name: "右手小指分號 (;)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指輕敲空白鍵 (一聲)" }
+            ]
+          }
+        ]
+      },
+      {
+        id: 3,
+        tag: "🎯 右側小指邊界極限鍵 (/ ; p . ,)",
+        title: "右側邊界攻防：小指與無名指獨立性",
+        desc: "針對右側小指最難定位的邊界鍵（ㄥ /、ㄤ ;、ㄣ p、ㄡ .、ㄝ ,），克服小指無力與按偏的盲打痛點。",
+        sentence: "風浪深秋夜別夢",
+        data: [
+          {
+            char: "風",
+            bopomofo: "ㄈㄥ",
+            strokes: [
+              { b: "ㄈ", k: "z", f: "left-pinky", name: "左手小指 (z)" },
+              { b: "ㄥ", k: "/", f: "right-pinky", name: "右手小指斜下極限鍵 (/)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "浪",
+            bopomofo: "ㄌㄤˋ",
+            strokes: [
+              { b: "ㄌ", k: "x", f: "left-ring", name: "左手無名指 (x)" },
+              { b: "ㄤ", k: ";", f: "right-pinky", name: "右手小指邊界 (;)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指四聲 (4)" }
+            ]
+          },
+          {
+            char: "深",
+            bopomofo: "ㄕㄣ",
+            strokes: [
+              { b: "ㄕ", k: "g", f: "left-index", name: "左手食指 (g)" },
+              { b: "ㄣ", k: "p", f: "right-pinky", name: "右手小指右上 (p)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "秋",
+            bopomofo: "ㄑㄧㄡ",
+            strokes: [
+              { b: "ㄑ", k: "f", f: "left-index", name: "左手食指 (f)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄡ", k: ".", f: "right-ring", name: "右手無名指下收 (.)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "夜",
+            bopomofo: "ㄧㄝˋ",
+            strokes: [
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄝ", k: ",", f: "right-middle", name: "右手中指下收 (,)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指四聲 (4)" }
+            ]
+          },
+          {
+            char: "別",
+            bopomofo: "ㄅㄧㄝˊ",
+            strokes: [
+              { b: "ㄅ", k: "1", f: "left-pinky", name: "左手小指數字排 (1)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄝ", k: ",", f: "right-middle", name: "右手中指下收 (,)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指二聲 (6)" }
+            ]
+          },
+          {
+            char: "夢",
+            bopomofo: "ㄇㄥˋ",
+            strokes: [
+              { b: "ㄇ", k: "a", f: "left-pinky", name: "左手小指 (a)" },
+              { b: "ㄥ", k: "/", f: "right-pinky", name: "右手小指斜下極限鍵 (/)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指四聲 (4)" }
+            ]
+          }
+        ]
+      },
+      {
+        id: 4,
+        tag: "🎯 底層指關節回縮鍵 (m b n v)",
+        title: "下排關節收縮：食指盲打跨度強化",
+        desc: "針對下方第三排低頻與冷門鍵位（ㄩ m、ㄖ b、ㄙ n、ㄒ v），鍛鍊雙手食指自然回縮敲擊的準確度。",
+        sentence: "雨日私心向綠林",
+        data: [
+          {
+            char: "雨",
+            bopomofo: "ㄩˇ",
+            strokes: [
+              { b: "ㄩ", k: "m", f: "right-index", name: "右手食指下收 (m)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指三聲 (3)" }
+            ]
+          },
+          {
+            char: "日",
+            bopomofo: "ㄖˋ",
+            strokes: [
+              { b: "ㄖ", k: "b", f: "left-index", name: "左手食指右下回縮 (b)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指四聲 (4)" }
+            ]
+          },
+          {
+            char: "私",
+            bopomofo: "ㄙ",
+            strokes: [
+              { b: "ㄙ", k: "n", f: "right-index", name: "右手食指左下回縮 (n)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "心",
+            bopomofo: "ㄒㄧㄣ",
+            strokes: [
+              { b: "ㄒ", k: "v", f: "left-index", name: "左手食指回縮 (v)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄣ", k: "p", f: "right-pinky", name: "右手小指 (p)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "向",
+            bopomofo: "ㄒㄧㄤˋ",
+            strokes: [
+              { b: "ㄒ", k: "v", f: "left-index", name: "左手食指回縮 (v)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄤ", k: ";", f: "right-pinky", name: "右手小指 (;)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指四聲 (4)" }
+            ]
+          },
+          {
+            char: "綠",
+            bopomofo: "ㄌㄩˋ",
+            strokes: [
+              { b: "ㄌ", k: "x", f: "left-ring", name: "左手無名指 (x)" },
+              { b: "ㄩ", k: "m", f: "right-index", name: "右手食指下收 (m)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指四聲 (4)" }
+            ]
+          },
+          {
+            char: "林",
+            bopomofo: "ㄌㄧㄣˊ",
+            strokes: [
+              { b: "ㄌ", k: "x", f: "left-ring", name: "左手無名指 (x)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄣ", k: "p", f: "right-pinky", name: "右手小指 (p)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指二聲 (6)" }
+            ]
+          }
+        ]
+      },
+      {
+        id: 5,
+        tag: "🎯 三聲與四聲跳動交錯 (3ˇ 與 4ˋ)",
+        title: "聲調辨識與中食指切換：三聲與四聲跳動",
+        desc: "針對三聲（3 / ˇ）與四聲（4 / ˋ）的高頻快速交替，練習左手中指與食指在數字排的精準獨立敲擊。",
+        sentence: "古道大馬野草長",
+        data: [
+          {
+            char: "古",
+            bopomofo: "ㄍㄨˇ",
+            strokes: [
+              { b: "ㄍ", k: "e", f: "left-middle", name: "左手中指 (e)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指按三聲 (3)" }
+            ]
+          },
+          {
+            char: "道",
+            bopomofo: "ㄉㄠˋ",
+            strokes: [
+              { b: "ㄉ", k: "2", f: "left-ring", name: "左手無名指 (2)" },
+              { b: "ㄠ", k: "l", f: "right-ring", name: "右手無名指 (l)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指按四聲 (4)" }
+            ]
+          },
+          {
+            char: "大",
+            bopomofo: "ㄉㄚˋ",
+            strokes: [
+              { b: "ㄉ", k: "2", f: "left-ring", name: "左手無名指 (2)" },
+              { b: "ㄚ", k: "8", f: "right-middle", name: "右手中指 (8)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指按四聲 (4)" }
+            ]
+          },
+          {
+            char: "馬",
+            bopomofo: "ㄇㄚˇ",
+            strokes: [
+              { b: "ㄇ", k: "a", f: "left-pinky", name: "左手小指 (a)" },
+              { b: "ㄚ", k: "8", f: "right-middle", name: "右手中指 (8)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指按三聲 (3)" }
+            ]
+          },
+          {
+            char: "野",
+            bopomofo: "ㄧㄝˇ",
+            strokes: [
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄝ", k: ",", f: "right-middle", name: "右手中指 (,)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指按三聲 (3)" }
+            ]
+          },
+          {
+            char: "草",
+            bopomofo: "ㄘㄠˇ",
+            strokes: [
+              { b: "ㄘ", k: "h", f: "right-index", name: "右手食指 (h)" },
+              { b: "ㄠ", k: "l", f: "right-ring", name: "右手無名指 (l)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指按三聲 (3)" }
+            ]
+          },
+          {
+            char: "長",
+            bopomofo: "ㄓㄤˇ",
+            strokes: [
+              { b: "ㄓ", k: "5", f: "left-index", name: "左手食指 (5)" },
+              { b: "ㄤ", k: ";", f: "right-pinky", name: "右手小指 (;)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指按三聲 (3)" }
+            ]
+          }
+        ]
+      },
+      {
+        id: 6,
+        tag: "🎯 雙手聲母對稱跨度 (ㄆ ㄊ ㄍ ㄎ ㄐ)",
+        title: "聲母陣列協調：左右手核心擊鍵連鎖",
+        desc: "針對左手主要聲母（ㄆ q、ㄊ w、ㄍ e、ㄎ d、ㄐ r）搭配右手韻母的雙手交互律動節奏。",
+        sentence: "北平東台看高山",
+        data: [
+          {
+            char: "北",
+            bopomofo: "ㄅㄟˇ",
+            strokes: [
+              { b: "ㄅ", k: "1", f: "left-pinky", name: "左手小指 (1)" },
+              { b: "ㄟ", k: "o", f: "right-ring", name: "右手無名指 (o)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指 (3)" }
+            ]
+          },
+          {
+            char: "平",
+            bopomofo: "ㄆㄧㄥˊ",
+            strokes: [
+              { b: "ㄆ", k: "q", f: "left-pinky", name: "左手小指 (q)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄥ", k: "/", f: "right-pinky", name: "右手小指 (/)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指 (6)" }
+            ]
+          },
+          {
+            char: "東",
+            bopomofo: "ㄉㄨㄥ",
+            strokes: [
+              { b: "ㄉ", k: "2", f: "left-ring", name: "左手無名指 (2)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ㄥ", k: "/", f: "right-pinky", name: "右手小指 (/)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "台",
+            bopomofo: "ㄊㄞˊ",
+            strokes: [
+              { b: "ㄊ", k: "w", f: "left-ring", name: "左手無名指 (w)" },
+              { b: "ㄞ", k: "9", f: "right-ring", name: "右手無名指 (9)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指 (6)" }
+            ]
+          },
+          {
+            char: "看",
+            bopomofo: "ㄎㄢˋ",
+            strokes: [
+              { b: "ㄎ", k: "d", f: "left-middle", name: "左手中指 (d)" },
+              { b: "ㄢ", k: "0", f: "right-pinky", name: "右手小指 (0)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指 (4)" }
+            ]
+          },
+          {
+            char: "高",
+            bopomofo: "ㄍㄠ",
+            strokes: [
+              { b: "ㄍ", k: "e", f: "left-middle", name: "左手中指 (e)" },
+              { b: "ㄠ", k: "l", f: "right-ring", name: "右手無名指 (l)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "山",
+            bopomofo: "ㄕㄢ",
+            strokes: [
+              { b: "ㄕ", k: "g", f: "left-index", name: "左手食指 (g)" },
+              { b: "ㄢ", k: "0", f: "right-pinky", name: "右手小指 (0)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          }
+        ]
+      },
+      {
+        id: 7,
+        tag: "🎯 介音與複合母音滑動 (ㄧu ㄨj ㄩm)",
+        title: "介音與複韻滑動：極限流暢度衝刺",
+        desc: "針對三拼音中的三大介音（ㄧ u、ㄨ j、ㄩ m）迅速滑向複合韻母的連續打字流暢性。",
+        sentence: "流水落花月如玉",
+        data: [
+          {
+            char: "流",
+            bopomofo: "ㄌㄧㄡˊ",
+            strokes: [
+              { b: "ㄌ", k: "x", f: "left-ring", name: "左手無名指 (x)" },
+              { b: "ㄧ", k: "u", f: "right-index", name: "右手食指 (u)" },
+              { b: "ㄡ", k: ".", f: "right-ring", name: "右手無名指 (.)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指 (6)" }
+            ]
+          },
+          {
+            char: "水",
+            bopomofo: "ㄕㄨㄟˇ",
+            strokes: [
+              { b: "ㄕ", k: "g", f: "left-index", name: "左手食指 (g)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ㄟ", k: "o", f: "right-ring", name: "右手無名指 (o)" },
+              { b: "ˇ", k: "3", f: "left-middle", name: "左手中指 (3)" }
+            ]
+          },
+          {
+            char: "落",
+            bopomofo: "ㄌㄨㄛˋ",
+            strokes: [
+              { b: "ㄌ", k: "x", f: "left-ring", name: "左手無名指 (x)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ㄛ", k: "i", f: "right-middle", name: "右手中指 (i)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指 (4)" }
+            ]
+          },
+          {
+            char: "花",
+            bopomofo: "ㄏㄨㄚ",
+            strokes: [
+              { b: "ㄏ", k: "c", f: "left-middle", name: "左手中指 (c)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ㄚ", k: "8", f: "right-middle", name: "右手中指 (8)" },
+              { b: "ˉ", k: " ", f: "thumbs", name: "大拇指 (空白鍵)" }
+            ]
+          },
+          {
+            char: "月",
+            bopomofo: "ㄩㄝˋ",
+            strokes: [
+              { b: "ㄩ", k: "m", f: "right-index", name: "右手食指 (m)" },
+              { b: "ㄝ", k: ",", f: "right-middle", name: "右手中指 (,)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指 (4)" }
+            ]
+          },
+          {
+            char: "如",
+            bopomofo: "ㄖㄨˊ",
+            strokes: [
+              { b: "ㄖ", k: "b", f: "left-index", name: "左手食指 (b)" },
+              { b: "ㄨ", k: "j", f: "right-index", name: "右手食指 (j)" },
+              { b: "ˊ", k: "6", f: "right-index", name: "右手食指 (6)" }
+            ]
+          },
+          {
+            char: "玉",
+            bopomofo: "ㄩˋ",
+            strokes: [
+              { b: "ㄩ", k: "m", f: "right-index", name: "右手食指 (m)" },
+              { b: "ˋ", k: "4", f: "left-index", name: "左手食指 (4)" }
+            ]
+          }
+        ]
+      }
+    ];
+
+    /* ==========================================================================
+       2. Keyboard Layout Definition & Finger Maps
+       ========================================================================== */
+    const KEYBOARD_ROWS = [
+      // Row 0 (Number Row)
+      [
+        { code: "Backquote", key: "`", b: "~", f: "left-pinky", w: "w-10 sm:w-12" },
+        { code: "Digit1", key: "1", b: "ㄅ", f: "left-pinky" },
+        { code: "Digit2", key: "2", b: "ㄉ", f: "left-ring" },
+        { code: "Digit3", key: "3", b: "ˇ", f: "left-middle" },
+        { code: "Digit4", key: "4", b: "ˋ", f: "left-index" },
+        { code: "Digit5", key: "5", b: "ㄓ", f: "left-index" },
+        { code: "Digit6", key: "6", b: "ˊ", f: "right-index" },
+        { code: "Digit7", key: "7", b: "˙", f: "right-index" },
+        { code: "Digit8", key: "8", b: "ㄚ", f: "right-middle" },
+        { code: "Digit9", key: "9", b: "ㄞ", f: "right-ring" },
+        { code: "Digit0", key: "0", b: "ㄢ", f: "right-pinky" },
+        { code: "Minus", key: "-", b: "ㄦ", f: "right-pinky" },
+        { code: "Equal", key: "=", b: "", f: "right-pinky" },
+        { code: "Backspace", key: "Backspace", b: "退格", f: "right-pinky", w: "flex-1 min-w-[50px]" }
+      ],
+      // Row 1 (QWERTY)
+      [
+        { code: "Tab", key: "Tab", b: "Tab", f: "left-pinky", w: "w-12 sm:w-16" },
+        { code: "KeyQ", key: "q", b: "ㄆ", f: "left-pinky" },
+        { code: "KeyW", key: "w", b: "ㄊ", f: "left-ring" },
+        { code: "KeyE", key: "e", b: "ㄍ", f: "left-middle" },
+        { code: "KeyR", key: "r", b: "ㄐ", f: "left-index" },
+        { code: "KeyT", key: "t", b: "ㄔ", f: "left-index" },
+        { code: "KeyY", key: "y", b: "ㄗ", f: "right-index" },
+        { code: "KeyU", key: "u", b: "ㄧ", f: "right-index" },
+        { code: "KeyI", key: "i", b: "ㄛ", f: "right-middle" },
+        { code: "KeyO", key: "o", b: "ㄟ", f: "right-ring" },
+        { code: "KeyP", key: "p", b: "ㄣ", f: "right-pinky" },
+        { code: "BracketLeft", key: "[", b: "", f: "right-pinky" },
+        { code: "BracketRight", key: "]", b: "", f: "right-pinky" },
+        { code: "Backslash", key: "\\", b: "", f: "right-pinky", w: "flex-1 min-w-[40px]" }
+      ],
+      // Row 2 (ASDF)
+      [
+        { code: "CapsLock", key: "CapsLock", b: "Caps", f: "left-pinky", w: "w-14 sm:w-20" },
+        { code: "KeyA", key: "a", b: "ㄇ", f: "left-pinky" },
+        { code: "KeyS", key: "s", b: "ㄋ", f: "left-ring" },
+        { code: "KeyD", key: "d", b: "ㄎ", f: "left-middle" },
+        { code: "KeyF", key: "f", b: "ㄑ", f: "left-index" },
+        { code: "KeyG", key: "g", b: "ㄕ", f: "left-index" },
+        { code: "KeyH", key: "h", b: "ㄘ", f: "right-index" },
+        { code: "KeyJ", key: "j", b: "ㄨ", f: "right-index" },
+        { code: "KeyK", key: "k", b: "ㄜ", f: "right-middle" },
+        { code: "KeyL", key: "l", b: "ㄠ", f: "right-ring" },
+        { code: "Semicolon", key: ";", b: "ㄤ", f: "right-pinky" },
+        { code: "Quote", key: "'", b: "", f: "right-pinky" },
+        { code: "Enter", key: "Enter", b: "Enter", f: "right-pinky", w: "flex-1 min-w-[50px]" }
+      ],
+      // Row 3 (ZXCV)
+      [
+        { code: "ShiftLeft", key: "Shift", b: "Shift", f: "left-pinky", w: "w-16 sm:w-24" },
+        { code: "KeyZ", key: "z", b: "ㄈ", f: "left-pinky" },
+        { code: "KeyX", key: "x", b: "ㄌ", f: "left-ring" },
+        { code: "KeyC", key: "c", b: "ㄏ", f: "left-middle" },
+        { code: "KeyV", key: "v", b: "ㄒ", f: "left-index" },
+        { code: "KeyB", key: "b", b: "ㄖ", f: "left-index" },
+        { code: "KeyN", key: "n", b: "ㄙ", f: "right-index" },
+        { code: "KeyM", key: "m", b: "ㄩ", f: "right-index" },
+        { code: "Comma", key: ",", b: "ㄝ", f: "right-middle" },
+        { code: "Period", key: ".", b: "ㄡ", f: "right-ring" },
+        { code: "Slash", key: "/", b: "ㄥ", f: "right-pinky" },
+        { code: "ShiftRight", key: "Shift", b: "Shift", f: "right-pinky", w: "flex-1 min-w-[50px]" }
+      ],
+      // Row 4 (Space bar)
+      [
+        { code: "ControlLeft", key: "Ctrl", b: "Ctrl", f: "left-pinky", w: "w-12 sm:w-16" },
+        { code: "AltLeft", key: "Alt", b: "Alt", f: "thumbs", w: "w-12 sm:w-14" },
+        { code: "Space", key: " ", b: "一聲 (陰平)", f: "thumbs", w: "flex-1 max-w-xl text-center" },
+        { code: "AltRight", key: "Alt", b: "Alt", f: "thumbs", w: "w-12 sm:w-14" },
+        { code: "ControlRight", key: "Ctrl", b: "Ctrl", f: "right-pinky", w: "w-12 sm:w-16" }
+      ]
+    ];
+
+    const FINGER_CONFIG = {
+      "left-pinky": { name: "左手小指", color: "bg-rose-500/20 text-rose-300 border-rose-500/40", dot: "bg-rose-500" },
+      "left-ring": { name: "左手無名指", color: "bg-amber-500/20 text-amber-300 border-amber-500/40", dot: "bg-amber-500" },
+      "left-middle": { name: "左手中指", color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40", dot: "bg-emerald-500" },
+      "left-index": { name: "左手食指", color: "bg-sky-500/20 text-sky-300 border-sky-500/40", dot: "bg-sky-500" },
+      "right-index": { name: "右手食指", color: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40", dot: "bg-indigo-500" },
+      "right-middle": { name: "右手中指", color: "bg-purple-500/20 text-purple-300 border-purple-500/40", dot: "bg-purple-500" },
+      "right-ring": { name: "右手無名指", color: "bg-pink-500/20 text-pink-300 border-pink-500/40", dot: "bg-pink-500" },
+      "right-pinky": { name: "右手小指", color: "bg-orange-500/20 text-orange-300 border-orange-500/40", dot: "bg-orange-500" },
+      "thumbs": { name: "雙手大拇指", color: "bg-teal-500/20 text-teal-300 border-teal-500/40", dot: "bg-teal-500" }
+    };
+
+    /* ==========================================================================
+       3. Audio Synthesizer (Zero external dependencies)
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.mode = "mechanical";
+      }
+
+      initCtx() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      }
+
+      playKey() {
+        if (this.mode === "mute") return;
+        this.initCtx();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        if (this.mode === "mechanical") {
+          // Sharp blue switch click
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(1400, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        } else if (this.mode === "typewriter") {
+          // Metallic typewriter clack
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.05);
+
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } else if (this.mode === "wood") {
+          // Warm wooden hollow click
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.04);
+
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+      }
+
+      playError() {
+        if (this.mode === "mute") return;
+        this.initCtx();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.12);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.13);
+      }
+
+      playRepComplete() {
+        if (this.mode === "mute") return;
+        this.initCtx();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.07;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.26);
+        });
+      }
+
+      playVictoryFanfare() {
+        if (this.mode === "mute") return;
+        this.initCtx();
+        if (!this.ctx) return;
+        const melody = [
+          { f: 523.25, d: 0.12 },
+          { f: 659.25, d: 0.12 },
+          { f: 783.99, d: 0.12 },
+          { f: 1046.50, d: 0.35 }
+        ];
+        let t = this.ctx.currentTime;
+        melody.forEach(item => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(item.f, t);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + item.d);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + item.d + 0.02);
+          t += item.d;
+        });
+      }
+
+      playEliminateSuccess() {
+        if (this.mode === "mute") return;
+        this.initCtx();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Two crisp ascending bell-like chimes (G5 -> C6)
+        [783.99, 1046.50].forEach((freq, idx) => {
+          const t = now + idx * 0.08;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.22, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.23);
+        });
+      }
+    }
+
+    /* ==========================================================================
+       4. Lightweight Confetti Particle Engine
+       ========================================================================== */
+    class ConfettiEngine {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.particles = [];
+        this.animationFrame = null;
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      burst() {
+        const colors = ["#38bdf8", "#34d399", "#818cf8", "#f43f5e", "#fbbf24", "#f472b6"];
+        for (let i = 0; i < 120; i++) {
+          this.particles.push({
+            x: this.canvas.width / 2,
+            y: this.canvas.height * 0.45,
+            vx: (Math.random() - 0.5) * 18,
+            vy: (Math.random() - 0.7) * 22,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 12,
+            alpha: 1,
+            gravity: 0.5
+          });
+        }
+        if (!this.animationFrame) {
+          this.loop();
+        }
+      }
+
+      loop() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.gravity;
+          p.vx *= 0.98;
+          p.rotation += p.rotSpeed;
+          p.alpha -= 0.012;
+
+          this.ctx.save();
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate((p.rotation * Math.PI) / 180);
+          this.ctx.globalAlpha = Math.max(0, p.alpha);
+          this.ctx.fillStyle = p.color;
+          this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.3);
+          this.ctx.restore();
+
+          if (p.alpha <= 0 || p.y > this.canvas.height + 50) {
+            this.particles.splice(i, 1);
+          }
+        }
+
+        if (this.particles.length > 0) {
+          this.animationFrame = requestAnimationFrame(() => this.loop());
+        } else {
+          this.animationFrame = null;
+        }
+      }
+    }
+
+    /* ==========================================================================
+       5. Main Application Controller
+       ========================================================================== */
+    class BopomofoApp {
+      constructor() {
+        this.sound = new SoundEngine();
+        this.confetti = new ConfettiEngine(document.getElementById("confettiCanvas"));
+
+        this.currentLevelIdx = 0;
+        this.practiceMode = "direct"; // "direct" or "ime"
+
+        // 7-Repetition Core State
+        this.repsCompleted = 0;
+        this.targetReps = 7;
+
+        // Current typing sentence progress in Mode 1
+        this.charIndex = 0;
+        this.strokeIndex = 0;
+
+        // Mistake Bank & Elimination Drill System
+        this.mistakeBank = new Map(); // key: char string, value: { char, bopomofo, strokes, failCount, tag }
+        this.isDrillMode = false;
+        this.drillQueue = [];
+        this.drillCurrentCharHasError = false;
+        this.savedNormalState = null;
+
+        // Stats tracking
+        this.totalKeystrokes = 0;
+        this.mistakesCount = 0;
+        this.correctKeystrokes = 0;
+        this.startTime = null;
+        this.sessionTimer = null;
+        this.levelStartTime = null;
+
+        this.keyDomMap = new Map();
+
+        this.initDOM();
+        this.renderKeyboard();
+        this.loadLevel(0);
+        this.bindEvents();
+      }
+
+      initDOM() {
+        this.sentenceDisplay = document.getElementById("sentenceDisplay");
+        this.repetitionDotsContainer = document.getElementById("repetitionDots");
+        this.currentRepText = document.getElementById("currentRepText");
+        this.levelInfoBar = document.getElementById("levelInfoBar");
+        this.levelBadge = document.getElementById("levelBadge");
+        this.targetFocusTag = document.getElementById("targetFocusTag");
+        this.levelTitle = document.getElementById("levelTitle");
+        this.levelDesc = document.getElementById("levelDesc");
+        this.promptTargetKey = document.getElementById("promptTargetKey");
+        this.promptTargetFinger = document.getElementById("promptTargetFinger");
+        this.feedbackToast = document.getElementById("feedbackToast");
+
+        // Stats
+        this.statAccuracy = document.getElementById("statAccuracy");
+        this.statWpm = document.getElementById("statWpm");
+        this.statCpm = document.getElementById("statCpm");
+        this.statErrors = document.getElementById("statErrors");
+
+        // Mistake Card Controls
+        this.openMistakeModalBtn = document.getElementById("openMistakeModalBtn");
+        this.mistakeBtnLabel = document.getElementById("mistakeBtnLabel");
+        this.mistakeBadge = document.getElementById("mistakeBadge");
+        this.mistakeListModal = document.getElementById("mistakeListModal");
+        this.closeMistakeModalBtn = document.getElementById("closeMistakeModalBtn");
+        this.closeMistakeModalBtn2 = document.getElementById("closeMistakeModalBtn2");
+        this.mistakeItemsList = document.getElementById("mistakeItemsList");
+        this.modalMistakeTotalBadge = document.getElementById("modalMistakeTotalBadge");
+        this.startDrillFromModalBtn = document.getElementById("startDrillFromModalBtn");
+
+        // Drill Banner & Victory Modal
+        this.drillBanner = document.getElementById("drillBanner");
+        this.drillRemainingBadge = document.getElementById("drillRemainingBadge");
+        this.exitDrillBtn = document.getElementById("exitDrillBtn");
+        this.drillVictoryModal = document.getElementById("drillVictoryModal");
+        this.drillVictoryReturnBtn = document.getElementById("drillVictoryReturnBtn");
+
+        // Mode toggles
+        this.modeDirectBtn = document.getElementById("modeDirectBtn");
+        this.modeImeBtn = document.getElementById("modeImeBtn");
+        this.mode1HintNotice = document.getElementById("mode1HintNotice");
+        this.imeInputWrapper = document.getElementById("imeInputWrapper");
+        this.imeInputField = document.getElementById("imeInputField");
+        this.fingerPromptBox = document.getElementById("fingerPromptBox");
+
+        // Sound Selector
+        this.soundSelect = document.getElementById("soundSelect");
+
+        // Modals
+        this.levelModal = document.getElementById("levelModal");
+        this.openLevelsBtn = document.getElementById("openLevelsBtn");
+        this.closeLevelModalBtn = document.getElementById("closeLevelModalBtn");
+        this.levelsListContainer = document.getElementById("levelsListContainer");
+
+        this.congratsModal = document.getElementById("congratsModal");
+        this.nextLevelBtn = document.getElementById("nextLevelBtn");
+        this.repeatLevelBtn = document.getElementById("repeatLevelBtn");
+      }
+
+      getActiveSentenceData() {
+        if (this.isDrillMode) {
+          return this.drillQueue;
+        }
+        return LESSONS[this.currentLevelIdx].data;
+      }
+
+      renderKeyboard() {
+        const keyboardEl = document.getElementById("keyboard");
+        keyboardEl.innerHTML = "";
+
+        KEYBOARD_ROWS.forEach(row => {
+          const rowDiv = document.createElement("div");
+          rowDiv.className = "flex justify-center gap-1 sm:gap-1.5 w-full";
+
+          row.forEach(keyObj => {
+            const btn = document.createElement("div");
+            const widthClass = keyObj.w || "flex-1 min-w-[28px] sm:min-w-[42px] max-w-[62px]";
+            const fingerMeta = FINGER_CONFIG[keyObj.f] || FINGER_CONFIG["thumbs"];
+
+            btn.className = `${widthClass} h-11 sm:h-13 bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700/80 rounded-xl flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none transition-transform duration-75 relative group`;
+            btn.dataset.code = keyObj.code;
+            btn.dataset.key = keyObj.key.toLowerCase();
+
+            // Finger category dot indicator
+            const dot = document.createElement("span");
+            dot.className = `w-1.5 h-1.5 rounded-full absolute top-1 right-1 ${fingerMeta.dot}`;
+            btn.appendChild(dot);
+
+            // Bopomofo character (Primary)
+            const bopomofoSpan = document.createElement("span");
+            bopomofoSpan.className = "font-bold text-sm sm:text-base text-cyan-200 tracking-wider";
+            bopomofoSpan.textContent = keyObj.b || "";
+
+            // Key letter (Secondary)
+            const latinSpan = document.createElement("span");
+            latinSpan.className = "text-[10px] sm:text-xs text-slate-400 font-mono self-end";
+            latinSpan.textContent = keyObj.key === " " ? "Space" : keyObj.key;
+
+            btn.appendChild(bopomofoSpan);
+            btn.appendChild(latinSpan);
+
+            this.keyDomMap.set(keyObj.key.toLowerCase(), btn);
+            if (keyObj.code) this.keyDomMap.set(keyObj.code, btn);
+
+            // Click listener for touch/mouse
+            btn.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              this.handleDirectKeyInput(keyObj.key.toLowerCase());
+            });
+
+            rowDiv.appendChild(btn);
+          });
+
+          keyboardEl.appendChild(rowDiv);
+        });
+      }
+
+      renderRepetitionDots() {
+        this.repetitionDotsContainer.innerHTML = "";
+        for (let i = 0; i < this.targetReps; i++) {
+          const dot = document.createElement("div");
+          if (i < this.repsCompleted) {
+            dot.className = "w-6 h-6 rounded-full bg-emerald-500 border border-emerald-400 flex items-center justify-center text-[10px] font-bold text-slate-950 shadow-md shadow-emerald-500/40 transition-all duration-300 transform scale-105";
+            dot.innerHTML = "✓";
+          } else if (i === this.repsCompleted) {
+            dot.className = "w-6 h-6 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-[10px] font-mono font-bold text-cyan-300 animate-pulse";
+            dot.textContent = i + 1;
+          } else {
+            dot.className = "w-6 h-6 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500";
+            dot.textContent = i + 1;
+          }
+          this.repetitionDotsContainer.appendChild(dot);
+        }
+        this.currentRepText.textContent = this.repsCompleted;
+      }
+
+      loadLevel(index) {
+        if (index < 0 || index >= LESSONS.length) index = 0;
+        this.currentLevelIdx = index;
+        const level = LESSONS[index];
+
+        this.isDrillMode = false;
+        this.levelInfoBar.classList.remove("hidden");
+        this.drillBanner.classList.add("hidden");
+
+        this.levelBadge.textContent = `關卡 ${index + 1} / ${LESSONS.length}`;
+        this.targetFocusTag.textContent = level.tag;
+        this.levelTitle.textContent = level.title;
+        this.levelDesc.textContent = level.desc;
+
+        // Reset sentence round states
+        this.repsCompleted = 0;
+        this.charIndex = 0;
+        this.strokeIndex = 0;
+        this.levelStartTime = Date.now();
+
+        this.renderRepetitionDots();
+        this.renderSentence();
+        this.updateTargetKeyHighlight();
+
+        if (this.practiceMode === "ime") {
+          this.imeInputField.value = "";
+          this.imeInputField.focus();
+        }
+      }
+
+      renderSentence() {
+        const sentenceData = this.getActiveSentenceData();
+        this.sentenceDisplay.innerHTML = "";
+
+        if (sentenceData.length === 0 && this.isDrillMode) {
+          this.sentenceDisplay.innerHTML = `<div class="text-sm text-slate-400">目前沒有待練習的錯字！</div>`;
+          return;
+        }
+
+        sentenceData.forEach((charObj, cIdx) => {
+          const card = document.createElement("div");
+          const isCurrentChar = (cIdx === this.charIndex);
+          const isDoneChar = (cIdx < this.charIndex);
+
+          card.className = `flex flex-col items-center justify-between p-2 sm:p-3 rounded-2xl border transition-all duration-200 min-w-[58px] sm:min-w-[76px] ${
+            isCurrentChar
+              ? "bg-slate-800/90 border-cyan-400 shadow-xl shadow-cyan-500/10 scale-105"
+              : isDoneChar
+              ? "bg-emerald-950/20 border-emerald-500/30 opacity-90"
+              : "bg-slate-900/60 border-slate-800 opacity-60"
+          }`;
+
+          // Ruby Bopomofo Header
+          const bopomofoHeader = document.createElement("div");
+          bopomofoHeader.className = "flex items-center gap-0.5 text-xs sm:text-sm font-mono tracking-widest min-h-[22px]";
+
+          charObj.strokes.forEach((stroke, sIdx) => {
+            const sSpan = document.createElement("span");
+            if (isDoneChar || (isCurrentChar && sIdx < this.strokeIndex)) {
+              sSpan.className = "text-emerald-400 font-bold";
+            } else if (isCurrentChar && sIdx === this.strokeIndex) {
+              sSpan.className = "text-cyan-300 font-black border-b-2 border-cyan-400 animate-pulse";
+            } else {
+              sSpan.className = "text-slate-500";
+            }
+            sSpan.textContent = stroke.b;
+            bopomofoHeader.appendChild(sSpan);
+          });
+
+          // Main Chinese Character
+          const hanziSpan = document.createElement("div");
+          hanziSpan.className = `text-2xl sm:text-4xl font-bold font-sans my-1 ${
+            isDoneChar
+              ? "text-emerald-300"
+              : isCurrentChar
+              ? "text-white"
+              : "text-slate-400"
+          }`;
+          hanziSpan.textContent = charObj.char;
+
+          // Keycode prompt underneath
+          const keyPrompt = document.createElement("div");
+          keyPrompt.className = "text-[10px] font-mono text-slate-500 mt-1";
+          const keysSummary = charObj.strokes.map(s => s.k === " " ? "␣" : s.k).join("");
+          keyPrompt.textContent = keysSummary;
+
+          card.appendChild(bopomofoHeader);
+          card.appendChild(hanziSpan);
+          card.appendChild(keyPrompt);
+
+          this.sentenceDisplay.appendChild(card);
+        });
+      }
+
+      updateTargetKeyHighlight() {
+        document.querySelectorAll(".key-active-glow").forEach(el => {
+          el.classList.remove("key-active-glow");
+        });
+
+        if (this.practiceMode === "ime") {
+          this.promptTargetKey.textContent = "請以中文輸入法輸入";
+          this.promptTargetFinger.textContent = "標準注音選字";
+          this.promptTargetFinger.className = "px-3 py-0.5 rounded-full font-bold text-xs bg-slate-800 text-slate-400";
+          return;
+        }
+
+        const sentenceData = this.getActiveSentenceData();
+        if (this.charIndex >= sentenceData.length) return;
+
+        const currentChar = sentenceData[this.charIndex];
+        const currentStroke = currentChar.strokes[this.strokeIndex];
+
+        if (!currentStroke) return;
+
+        const keyChar = currentStroke.k;
+        const domKey = this.keyDomMap.get(keyChar.toLowerCase());
+
+        if (domKey) {
+          domKey.classList.add("key-active-glow");
+        }
+
+        const keyDisplay = keyChar === " " ? "Space (空白鍵)" : keyChar.toUpperCase();
+        this.promptTargetKey.textContent = `${keyDisplay} ➜ ${currentStroke.b}`;
+
+        const fingerMeta = FINGER_CONFIG[currentStroke.f] || FINGER_CONFIG["thumbs"];
+        this.promptTargetFinger.textContent = currentStroke.name || fingerMeta.name;
+        this.promptTargetFinger.className = `px-3 py-0.5 rounded-full font-bold text-xs border ${fingerMeta.color}`;
+      }
+
+      recordMistake(charObj, lessonTag) {
+        if (!charObj) return;
+        if (this.mistakeBank.has(charObj.char)) {
+          const item = this.mistakeBank.get(charObj.char);
+          item.failCount++;
+        } else {
+          this.mistakeBank.set(charObj.char, {
+            char: charObj.char,
+            bopomofo: charObj.bopomofo,
+            strokes: charObj.strokes,
+            failCount: 1,
+            tag: lessonTag || "專項練習"
+          });
+        }
+        this.updateMistakeCardUI();
+      }
+
+      updateMistakeCardUI() {
+        const count = this.mistakeBank.size;
+        if (count === 0) {
+          this.openMistakeModalBtn.disabled = true;
+          this.openMistakeModalBtn.className = "w-full py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 bg-slate-800/70 text-slate-500 border border-slate-700/60 cursor-not-allowed";
+          this.mistakeBtnLabel.textContent = "錯字特訓";
+          this.mistakeBadge.textContent = "暫無錯字";
+          this.mistakeBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-700 text-slate-400";
+        } else {
+          this.openMistakeModalBtn.disabled = false;
+          this.openMistakeModalBtn.className = "w-full py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-400/50 shadow-md shadow-rose-600/30 cursor-pointer";
+          this.mistakeBtnLabel.textContent = "🎯 錯字特訓";
+          this.mistakeBadge.textContent = `🔴 ${count} 字待消滅`;
+          this.mistakeBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-mono bg-white/20 text-white font-bold animate-pulse";
+        }
+      }
+
+      handleDirectKeyInput(pressedKey) {
+        if (this.practiceMode !== "direct") return;
+
+        const sentenceData = this.getActiveSentenceData();
+        if (this.charIndex >= sentenceData.length) return;
+
+        if (!this.startTime) {
+          this.startTime = Date.now();
+          this.startStatsTimer();
+        }
+
+        this.totalKeystrokes++;
+        const currentChar = sentenceData[this.charIndex];
+        const expectedStroke = currentChar.strokes[this.strokeIndex];
+        const expectedKey = expectedStroke.k.toLowerCase();
+
+        // Key visual feedback
+        const keyEl = this.keyDomMap.get(pressedKey.toLowerCase());
+        if (keyEl) {
+          keyEl.classList.add("key-pressed");
+          setTimeout(() => keyEl.classList.remove("key-pressed"), 120);
+        }
+
+        if (pressedKey.toLowerCase() === expectedKey) {
+          // Correct key hit
+          this.correctKeystrokes++;
+          this.sound.playKey();
+          this.hideToast();
+          this.strokeIndex++;
+
+          // Check if finished current character's strokes
+          if (this.strokeIndex >= currentChar.strokes.length) {
+            if (this.isDrillMode) {
+              this.handleDrillCharacterFinish(currentChar);
+            } else {
+              this.strokeIndex = 0;
+              this.charIndex++;
+              if (this.charIndex >= sentenceData.length) {
+                this.handleRepetitionSuccess();
+              } else {
+                this.renderSentence();
+                this.updateTargetKeyHighlight();
+              }
+            }
+          } else {
+            this.renderSentence();
+            this.updateTargetKeyHighlight();
+          }
+        } else {
+          // Mistake!
+          this.mistakesCount++;
+          this.sound.playError();
+
+          if (this.isDrillMode) {
+            this.drillCurrentCharHasError = true;
+            this.showToast(`按錯了！本字「${currentChar.char}」判定有失誤，將排至隊列末端重打。應按【${expectedKey === " " ? "Space" : expectedKey.toUpperCase()} ➜ ${expectedStroke.b}】`);
+          } else {
+            const currentLesson = LESSONS[this.currentLevelIdx];
+            this.recordMistake(currentChar, currentLesson.tag);
+            this.showToast(`按錯了！應按【${expectedKey === " " ? "Space" : expectedKey.toUpperCase()} ➜ ${expectedStroke.b}】已加入錯字庫！`);
+          }
+
+          const arena = document.getElementById("typingArena");
+          arena.classList.add("shake-anim");
+          setTimeout(() => arena.classList.remove("shake-anim"), 350);
+        }
+
+        this.updateStats();
+      }
+
+      handleDrillCharacterFinish(finishedChar) {
+        if (!this.drillCurrentCharHasError) {
+          // 0 Mistake Clean Completion -> Permanently Eliminate from Mistake Bank!
+          this.mistakeBank.delete(finishedChar.char);
+          this.sound.playEliminateSuccess();
+          this.showToast(`✨ 完美零失誤！「${finishedChar.char}」已從錯字庫永久消滅！`);
+
+          // Remove from current drill queue
+          this.drillQueue.splice(this.charIndex, 1);
+        } else {
+          // Had error -> Keep in bank and re-queue to end of drill
+          const failed = this.drillQueue.splice(this.charIndex, 1)[0];
+          this.drillQueue.push(failed);
+          this.showToast(`⚠️「${failed.char}」剛才有按錯，已重新排至隊列末端繼續特訓！`);
+        }
+
+        this.strokeIndex = 0;
+        this.drillCurrentCharHasError = false;
+        this.updateMistakeCardUI();
+        this.updateDrillBannerUI();
+
+        if (this.drillQueue.length === 0) {
+          // All mistakes conquered!
+          this.handleDrillComplete();
+        } else {
+          if (this.charIndex >= this.drillQueue.length) {
+            this.charIndex = 0;
+          }
+          this.renderSentence();
+          this.updateTargetKeyHighlight();
+        }
+      }
+
+      startMistakeDrill() {
+        if (this.mistakeBank.size === 0) return;
+
+        // Save current normal session progress
+        this.savedNormalState = {
+          levelIdx: this.currentLevelIdx,
+          reps: this.repsCompleted,
+          charIdx: this.charIndex,
+          strokeIdx: this.strokeIndex
+        };
+
+        this.isDrillMode = true;
+        this.drillQueue = Array.from(this.mistakeBank.values());
+        this.charIndex = 0;
+        this.strokeIndex = 0;
+        this.drillCurrentCharHasError = false;
+
+        // Switch to drill banner
+        this.levelInfoBar.classList.add("hidden");
+        this.drillBanner.classList.remove("hidden");
+        this.updateDrillBannerUI();
+
+        // Close Mistake Modal
+        this.mistakeListModal.classList.add("opacity-0");
+        setTimeout(() => this.mistakeListModal.classList.add("hidden"), 250);
+
+        this.renderSentence();
+        this.updateTargetKeyHighlight();
+        this.showToast(`🔥 錯字消滅特訓開始！請依序零失誤打完所有錯字以達成消滅。`);
+      }
+
+      exitMistakeDrill() {
+        this.isDrillMode = false;
+        this.drillBanner.classList.add("hidden");
+        this.levelInfoBar.classList.remove("hidden");
+
+        if (this.savedNormalState) {
+          this.currentLevelIdx = this.savedNormalState.levelIdx;
+          this.repsCompleted = this.savedNormalState.reps;
+          this.charIndex = this.savedNormalState.charIdx;
+          this.strokeIndex = this.savedNormalState.strokeIdx;
+        }
+
+        this.renderRepetitionDots();
+        this.renderSentence();
+        this.updateTargetKeyHighlight();
+        this.showToast(`已退出錯字特訓，回到原關卡練習。`);
+      }
+
+      handleDrillComplete() {
+        this.isDrillMode = false;
+        this.drillBanner.classList.add("hidden");
+        this.levelInfoBar.classList.remove("hidden");
+
+        this.sound.playVictoryFanfare();
+        this.confetti.burst();
+        this.drillVictoryModal.classList.remove("hidden");
+      }
+
+      updateDrillBannerUI() {
+        const remaining = this.drillQueue.length;
+        this.drillRemainingBadge.textContent = `剩餘 ${remaining} 字`;
+      }
+
+      renderMistakeModalList() {
+        this.mistakeItemsList.innerHTML = "";
+        const count = this.mistakeBank.size;
+        this.modalMistakeTotalBadge.textContent = `${count} 字待消滅`;
+
+        if (count === 0) {
+          this.mistakeItemsList.innerHTML = `
+            <div class="col-span-1 sm:col-span-2 py-12 text-center text-slate-400 space-y-2">
+              <div class="text-4xl">🎉</div>
+              <div class="text-base font-bold text-white">太棒了！目前沒有任何錯字紀錄</div>
+              <div class="text-xs text-slate-500">在日常練習中若有打錯，系統會自動收集至此處供您針對性重練。</div>
+            </div>
+          `;
+          this.startDrillFromModalBtn.disabled = true;
+          return;
+        }
+
+        this.startDrillFromModalBtn.disabled = false;
+
+        this.mistakeBank.forEach(item => {
+          const card = document.createElement("div");
+          card.className = "bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-md";
+
+          const keysSummary = item.strokes.map(s => s.k === " " ? "Space" : s.k.toUpperCase()).join(" + ");
+
+          card.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center">
+                <span class="text-xl font-bold text-cyan-300">${item.char}</span>
+                <span class="text-[10px] text-slate-400 font-mono">${item.bopomofo}</span>
+              </div>
+              <div class="space-y-0.5">
+                <div class="text-xs font-mono text-cyan-400 font-bold tracking-wider">${keysSummary}</div>
+                <div class="text-[11px] text-slate-400">${item.tag}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                按錯 ${item.failCount} 次
+              </span>
+            </div>
+          `;
+          this.mistakeItemsList.appendChild(card);
+        });
+      }
+
+      handleRepetitionSuccess() {
+        this.repsCompleted++;
+        this.charIndex = 0;
+        this.strokeIndex = 0;
+        this.renderRepetitionDots();
+
+        if (this.repsCompleted >= this.targetReps) {
+          this.sound.playVictoryFanfare();
+          this.confetti.burst();
+          this.showCongratsModal();
+        } else {
+          this.sound.playRepComplete();
+          this.renderSentence();
+          this.updateTargetKeyHighlight();
+        }
+      }
+
+      showToast(msg) {
+        this.feedbackToast.textContent = msg;
+        this.feedbackToast.classList.remove("opacity-0");
+        this.feedbackToast.classList.add("opacity-100");
+      }
+
+      hideToast() {
+        this.feedbackToast.classList.add("opacity-0");
+        this.feedbackToast.classList.remove("opacity-100");
+      }
+
+      startStatsTimer() {
+        if (this.sessionTimer) clearInterval(this.sessionTimer);
+        this.sessionTimer = setInterval(() => {
+          this.updateStats();
+        }, 800);
+      }
+
+      updateStats() {
+        if (!this.startTime) return;
+        const elapsedMinutes = Math.max((Date.now() - this.startTime) / 60000, 0.05);
+
+        const cpm = Math.round(this.correctKeystrokes / elapsedMinutes);
+        this.statCpm.textContent = cpm;
+
+        const wpm = Math.round((this.correctKeystrokes / 3.2) / elapsedMinutes);
+        this.statWpm.textContent = wpm;
+
+        const acc = this.totalKeystrokes === 0
+          ? 100
+          : Math.max(0, Math.round((this.correctKeystrokes / this.totalKeystrokes) * 100));
+        this.statAccuracy.textContent = `${acc}%`;
+
+        this.statErrors.textContent = this.mistakesCount;
+      }
+
+      showCongratsModal() {
+        const level = LESSONS[this.currentLevelIdx];
+        document.getElementById("congratsLevelTitle").textContent = `已成功攻克：${level.title}`;
+
+        const elapsedSeconds = Math.round((Date.now() - (this.levelStartTime || this.startTime)) / 1000);
+        document.getElementById("modalTime").textContent = `${elapsedSeconds}s`;
+        document.getElementById("modalWpm").textContent = `${this.statWpm.textContent} WPM`;
+        document.getElementById("modalAccuracy").textContent = this.statAccuracy.textContent;
+
+        this.congratsModal.classList.remove("hidden");
+      }
+
+      bindEvents() {
+        window.addEventListener("keydown", (e) => {
+          if (this.practiceMode === "ime" && document.activeElement === this.imeInputField) {
+            return;
+          }
+
+          if (e.key === " " && this.practiceMode === "direct") {
+            e.preventDefault();
+            this.handleDirectKeyInput(" ");
+            return;
+          }
+
+          if (e.key.length === 1) {
+            e.preventDefault();
+            this.handleDirectKeyInput(e.key.toLowerCase());
+          }
+        });
+
+        // Mode Toggles
+        this.modeDirectBtn.addEventListener("click", () => {
+          this.setPracticeMode("direct");
+        });
+        this.modeImeBtn.addEventListener("click", () => {
+          this.setPracticeMode("ime");
+        });
+
+        // Sound Selector
+        this.soundSelect.addEventListener("change", (e) => {
+          this.sound.mode = e.target.value;
+          this.sound.playKey();
+        });
+
+        // IME Input Logic (Mode 2)
+        this.imeInputField.addEventListener("compositionend", () => {
+          this.checkImeInput();
+        });
+        this.imeInputField.addEventListener("input", () => {
+          this.checkImeInput();
+        });
+
+        // Mistake Modal Open & Close
+        this.openMistakeModalBtn.addEventListener("click", () => {
+          this.renderMistakeModalList();
+          this.mistakeListModal.classList.remove("hidden");
+          setTimeout(() => this.mistakeListModal.classList.remove("opacity-0"), 10);
+        });
+
+        const hideMistakeModal = () => {
+          this.mistakeListModal.classList.add("opacity-0");
+          setTimeout(() => this.mistakeListModal.classList.add("hidden"), 250);
+        };
+        this.closeMistakeModalBtn.addEventListener("click", hideMistakeModal);
+        this.closeMistakeModalBtn2.addEventListener("click", hideMistakeModal);
+
+        // Start Drill from Modal
+        this.startDrillFromModalBtn.addEventListener("click", () => {
+          this.startMistakeDrill();
+        });
+
+        // Exit Drill Button
+        this.exitDrillBtn.addEventListener("click", () => {
+          this.exitMistakeDrill();
+        });
+
+        // Drill Victory Return Button
+        this.drillVictoryReturnBtn.addEventListener("click", () => {
+          this.drillVictoryModal.classList.add("hidden");
+          if (this.savedNormalState) {
+            this.loadLevel(this.savedNormalState.levelIdx);
+          } else {
+            this.loadLevel(0);
+          }
+        });
+
+        // Level Modal Controls
+        this.openLevelsBtn.addEventListener("click", () => {
+          this.renderLevelsList();
+          this.levelModal.classList.remove("hidden");
+          setTimeout(() => this.levelModal.classList.remove("opacity-0"), 10);
+        });
+
+        this.closeLevelModalBtn.addEventListener("click", () => {
+          this.levelModal.classList.add("opacity-0");
+          setTimeout(() => this.levelModal.classList.add("hidden"), 300);
+        });
+
+        // Congrats Modal Buttons
+        this.repeatLevelBtn.addEventListener("click", () => {
+          this.congratsModal.classList.add("hidden");
+          this.loadLevel(this.currentLevelIdx);
+        });
+
+        this.nextLevelBtn.addEventListener("click", () => {
+          this.congratsModal.classList.add("hidden");
+          const nextIdx = (this.currentLevelIdx + 1) % LESSONS.length;
+          this.loadLevel(nextIdx);
+        });
+      }
+
+      setPracticeMode(mode) {
+        this.practiceMode = mode;
+        if (mode === "direct") {
+          this.modeDirectBtn.className = "px-3 py-1.5 rounded-lg font-medium transition-all duration-200 bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20";
+          this.modeImeBtn.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all duration-200";
+          this.mode1HintNotice.classList.remove("hidden");
+          this.imeInputWrapper.classList.add("hidden");
+          this.fingerPromptBox.classList.remove("hidden");
+        } else {
+          this.modeImeBtn.className = "px-3 py-1.5 rounded-lg font-medium transition-all duration-200 bg-indigo-500 text-white shadow-md shadow-indigo-500/20";
+          this.modeDirectBtn.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all duration-200";
+          this.mode1HintNotice.classList.add("hidden");
+          this.imeInputWrapper.classList.remove("hidden");
+          this.imeInputField.focus();
+        }
+        this.renderSentence();
+        this.updateTargetKeyHighlight();
+      }
+
+      checkImeInput() {
+        const val = this.imeInputField.value.trim();
+        const sentenceData = this.getActiveSentenceData();
+        const target = sentenceData.map(c => c.char).join("");
+
+        if (val === target) {
+          this.imeInputField.value = "";
+          if (this.isDrillMode) {
+            this.mistakeBank.clear();
+            this.updateMistakeCardUI();
+            this.handleDrillComplete();
+          } else {
+            this.handleRepetitionSuccess();
+          }
+        } else if (target.startsWith(val)) {
+          this.charIndex = val.length;
+          this.renderSentence();
+          this.sound.playKey();
+        } else if (val.length >= target.length) {
+          this.sound.playError();
+          this.showToast(`句子不相符，目標為「${target}」`);
+        }
+      }
+
+      renderLevelsList() {
+        this.levelsListContainer.innerHTML = "";
+        LESSONS.forEach((lvl, idx) => {
+          const row = document.createElement("div");
+          const isActive = idx === this.currentLevelIdx;
+          row.className = `p-3.5 rounded-2xl border cursor-pointer transition flex items-center justify-between gap-3 ${
+            isActive
+              ? "bg-cyan-500/10 border-cyan-400"
+              : "bg-slate-900/60 border-slate-800 hover:bg-slate-800/80"
+          }`;
+
+          row.innerHTML = `
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">關卡 ${lvl.id}</span>
+                <span class="text-xs text-amber-300 font-medium">${lvl.tag}</span>
+              </div>
+              <div class="font-bold text-sm text-white">${lvl.title}</div>
+              <div class="text-xs font-serif text-slate-400 tracking-wider">練習語句：「${lvl.sentence}」</div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold px-3 py-1.5 rounded-xl ${
+                isActive ? "bg-cyan-500 text-slate-950" : "bg-slate-800 text-slate-300"
+              }">
+                ${isActive ? "修煉中" : "開始挑戰"}
+              </span>
+            </div>
+          `;
+
+          row.addEventListener("click", () => {
+            this.loadLevel(idx);
+            this.levelModal.classList.add("opacity-0");
+            setTimeout(() => this.levelModal.classList.add("hidden"), 300);
+          });
+
+          this.levelsListContainer.appendChild(row);
+        });
+      }
+    }
+
+    // Initialize application when window is loaded
+    window.addEventListener("DOMContentLoaded", () => {
+      window.app = new BopomofoApp();
+    });
+  </script>
+</body>
+</html>
